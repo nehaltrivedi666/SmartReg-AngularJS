@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html ng-app="academicApp">
+<head>
+    <title>Academic Analytics - Pastel Edition</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+    <style>
+       
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: #f0f4f8; 
+            color: #37474f; 
+            margin: 0; padding: 0; 
+        }
+        
+        
+        .navbar { 
+            background-color: #a5d6a7; 
+            color: #2e7d32; 
+            display: flex; 
+            align-items: center; 
+            padding: 0 20px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05); 
+        }
+        .nav-brand { font-size: 1.5em; font-weight: bold; margin-right: auto; }
+        .nav-links { display: flex; list-style: none; margin: 0; padding: 0; }
+        .nav-item { padding: 20px 15px; cursor: pointer; transition: 0.3s; font-weight: 600; }
+        .nav-item:hover { background-color: rgba(255, 255, 255, 0.3); }
+        .nav-item.active { background-color: #ffffff; color: #2e7d32; border-radius: 8px 8px 0 0; }
+
+        .container { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
+        
+        
+        .card { 
+            background: #ffffff; 
+            padding: 30px; 
+            border-radius: 20px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.03); 
+            margin-bottom: 20px; 
+            border: 1px solid #e3f2fd;
+        }
+        h3 { border-left: 5px solid #64b5f6; padding-left: 15px; margin-top: 0; color: #1565c0; }
+        
+        input, select { 
+            width: 100%; padding: 12px; 
+            border: 2px solid #e1e8ed; 
+            border-radius: 10px; 
+            box-sizing: border-box; 
+            margin-bottom: 10px; 
+        }
+        input.ng-invalid.ng-dirty { border-color: #ef9a9a; background: #fff8f8; } 
+        
+        .subject-grid { 
+            display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; 
+            background: #f1f8e9; padding: 20px; border-radius: 12px; 
+        }
+        
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; border-radius: 15px; overflow: hidden; }
+        th, td { padding: 15px; border-bottom: 1px solid #f0f0f0; text-align: left; }
+        th { background-color: #e3f2fd; color: #1976d2; cursor: pointer; text-transform: uppercase; font-size: 0.85em; }
+        .view-link { color: #2196f3; cursor: pointer; text-decoration: underline; font-weight: bold; }
+
+       
+        .analytics-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .stat-card { background: #f3e5f5; border: 1px solid #ce93d8; padding: 25px; border-radius: 15px; text-align: center; }
+        
+        .pass-text { color: #43a047; font-weight: bold; }
+        .fail-text { color: #e53935; font-weight: bold; }
+        .subject-fail { color: white; background: #ff8a80; border-radius: 6px; padding: 2px 6px; }
+
+        button { 
+            padding: 12px 30px; background: #78cc7b; color: white; 
+            border: none; border-radius: 10px; cursor: pointer; font-weight: bold; text-transform: uppercase;
+        }
+        button:disabled { background: #cfd8dc; cursor: not-allowed; }
+    </style>
+</head>
+<body ng-controller="AcademicController">
+
+    <nav class="navbar">
+        <div class="nav-brand">Smart Student Dashboard</div>
+        <ul class="nav-links">
+            <li class="nav-item" ng-class="{'active': currentTab === 'entry'}" ng-click="setTab('entry')">Entry</li>
+            <li class="nav-item" ng-class="{'active': currentTab === 'registry'}" ng-click="setTab('registry')">Registry</li>
+            <li class="nav-item" ng-class="{'active': currentTab === 'performance'}" ng-click="setTab('performance')">Analytics</li>
+        </ul>
+    </nav>
+
+    <div class="container">
+
+        <div class="card" ng-show="currentTab === 'entry'">
+            <h3>New Student Registration</h3>
+            <form name="entryForm" ng-submit="addStudent()" novalidate>
+                <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 15px;">
+                    <input type="text" ng-model="temp.name" placeholder="Full Name" required>
+                    <input type="text" ng-model="temp.enroll" ng-pattern="/^EN-\d{4}$/" placeholder="EN-0000" required>
+                    <select ng-model="temp.branch" required>
+                        <option value="" disabled selected>Select Branch</option>
+                        <option value="Computer">Computer</option>
+                        <option value="IT">IT</option>
+                    </select>
+                </div>
+                <div class="subject-grid">
+                    <div ng-repeat="subject in subjectNames">
+                        <label style="font-size: 0.75em; color: #555; display:block; margin-bottom: 5px;">{{subject}}</label>
+                        <input type="number" ng-model="temp.marks[$index]" min="0" max="100" required>
+                    </div>
+                </div>
+                <button type="submit" ng-disabled="entryForm.$invalid" style="margin-top: 20px;">Register Student</button>
+            </form>
+        </div>
+
+        <div class="card" ng-show="currentTab === 'registry'">
+            <h3>Student Database</h3>
+            <input type="text" ng-model="search" placeholder="Search records..." style="width: 300px;">
+            <table>
+                <thead>
+                    <tr>
+                        <th ng-click="sortBy('enroll')">Enroll #</th>
+                        <th ng-click="sortBy('name')">Name</th>
+                        <th>Branch</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr ng-repeat="s in students | filter:search | orderBy:sortKey">
+                        <td>{{s.enroll}}</td>
+                        <td class="view-link" ng-click="viewResult(s)">{{s.name | uppercase}}</td>
+                        <td>{{s.branch}}</td>
+                        <td><button ng-click="viewResult(s)" style="padding: 6px 12px; font-size: 0.75em; background: #81c784;">View Result</button></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card" ng-show="currentTab === 'result'">
+            <h3>Academic Transcript: {{selected.name | uppercase}}</h3>
+            <div style="max-width: 500px; background: #fff; padding: 25px; border-radius: 15px; border: 1px solid #eee; margin-top: 10px;">
+                <div ng-repeat="subject in subjectNames" style="display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #f9f9f9;">
+                    <span>{{subject}}</span>
+                    <span ng-class="{'subject-fail': selected.marks[$index] < 40}">{{selected.marks[$index]}} / 100</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 20px 12px; font-weight: bold; background: #f1f8e9; margin-top: 15px; border-radius: 10px;">
+                    <span>PERCENTAGE</span>
+                    <span>{{selected.avg | number:2}}%</span>
+                </div>
+                <div style="padding-top: 20px; text-align: center; font-size: 1.3em;">
+                    <result-status score="selected.avg"></result-status>
+                </div>
+            </div>
+            <button ng-click="setTab('registry')" style="margin-top: 20px; background: #90a4ae;">Back to List</button>
+        </div>
+
+        <div class="card" ng-show="currentTab === 'performance'">
+            <h3>Class Performance Analysis</h3>
+            <div class="analytics-container" ng-if="students.length > 0">
+                <div class="stat-card">
+                    <h4>Overall Pass/Fail Ratio</h4>
+                    <div style="font-size: 2.5em; margin: 10px 0;" class="pass-text">{{passRate | number:1}}% Pass</div>
+                    <div class="fail-text">{{100 - passRate | number:1}}% Fail</div>
+                </div>
+                <div class="stat-card" style="background: #e1f5fe; border-color: #4fc3f7;">
+                    <h4>Subject-Wise Averages</h4>
+                    <div ng-repeat="subject in subjectNames" style="display:flex; justify-content:space-between; padding: 10px 0; border-bottom: 1px solid rgba(0,0,0,0.05);">
+                        <span>{{subject}}</span>
+                        <strong>{{subjectAverages[$index] | number:1}}%</strong>
+                    </div>
+                </div>
+            </div>
+            <p ng-if="students.length === 0" style="text-align: center;">Enroll students to view analytics.</p>
+        </div>
+
+    </div>
+
+    <script>
+        var app = angular.module('academicApp', []);
+
+      
+        app.controller('AcademicController', function($scope) {
+           
+            $scope.subjectNames = ["MATHS", "ENGLISH", "SCIENCE", "GUJARATI", "HINDI"];
+            $scope.students = [];
+            $scope.temp = { marks: [] };
+            $scope.currentTab = 'entry';
+            $scope.subjectAverages = [0, 0, 0, 0, 0];
+            $scope.passRate = 0;
+            $scope.sortKey = 'enroll';
+
+            $scope.setTab = function(t) { $scope.currentTab = t; };
+            $scope.viewResult = function(s) { $scope.selected = s; $scope.currentTab = 'result'; };
+
+          
+            $scope.addStudent = function() {
+                var sum = $scope.temp.marks.reduce((a, b) => a + (b || 0), 0);
+                $scope.temp.avg = sum / 5;
+                $scope.students.push(angular.copy($scope.temp));
+                
+                calculateAnalytics();
+                $scope.temp = { marks: [] };
+                $scope.entryForm.$setPristine();
+                $scope.entryForm.$setUntouched();
+                $scope.currentTab = 'registry';
+            };
+
+            function calculateAnalytics() {
+                var count = $scope.students.length;
+                var subTotals = [0, 0, 0, 0, 0];
+                var passed = 0;
+                $scope.students.forEach(s => {
+                    for(var i=0; i<5; i++) subTotals[i] += (s.marks[i] || 0);
+                    if(s.avg >= 40) passed++;
+                });
+                $scope.subjectAverages = subTotals.map(v => v / count);
+                $scope.passRate = (passed / count) * 100;
+            }
+
+            $scope.sortBy = function(k) { $scope.sortKey = k; };
+        });
+
+       
+        app.directive('resultStatus', function() {
+            return {
+                restrict: 'E',
+                scope: { score: '=' },
+                template: '<span ng-class="score >= 40 ? \'pass-text\' : \'fail-text\'">{{ score >= 40 ? "QUALIFIED" : "NOT QUALIFIED" }}</span>'
+            };
+        });
+    </script>
+</body>
+</html>
